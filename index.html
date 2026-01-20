@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TOPSIS Web Service</title>
+    <style>
+        body { font-family: Arial; background: #f4f4f4; }
+        .box { width: 400px; margin: 50px auto; padding: 20px; background: white; border-radius: 8px; }
+        input, button { width: 100%; padding: 8px; margin: 8px 0; }
+        button { background: orange; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="box">
+<h2>TOPSIS Calculator</h2>
+<form action="/api/topsis" method="post" enctype="multipart/form-data">
+<label>CSV File</label>
+<input type="file" name="file" required>
+<label>Weights</label>
+<input type="text" name="weights" placeholder="1,1,1,1" required>
+<label>Impacts</label>
+<input type="text" name="impacts" placeholder="+,+,-,+" required>
+<label>Email</label>
+<input type="email" name="email" required>
+<button type="submit">Submit</button>
+</form>
+<p><b>Result will be downloaded automatically</b></p>
+</div>
+</body>
+</html>
