@@ -1,29 +1,192 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>TOPSIS Web Service</title>
-    <style>
-        body { font-family: Arial; background: #f4f4f4; }
-        .box { width: 400px; margin: 50px auto; padding: 20px; background: white; border-radius: 8px; }
-        input, button { width: 100%; padding: 8px; margin: 8px 0; }
-        button { background: orange; border: none; cursor: pointer; }
-    </style>
+<meta charset="UTF-8">
+<title>TOPSIS Web Service | Ashpreet (102303263)</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    background: linear-gradient(135deg,#141E30,#243B55);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.container{
+    background:#ffffff;
+    width:380px;
+    padding:32px 36px;
+    border-radius:16px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.35);
+    animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn{
+    from{opacity:0; transform:translateY(15px);}
+    to{opacity:1; transform:translateY(0);}
+}
+
+h2{
+    text-align:center;
+    margin-bottom:8px;
+    color:#2c2c2c;
+}
+
+.subtitle{
+    text-align:center;
+    font-size:13px;
+    color:#666;
+    margin-bottom:22px;
+}
+
+label{
+    display:block;
+    font-weight:600;
+    margin-top:14px;
+    font-size:14px;
+}
+
+input{
+    width:100%;
+    margin-top:6px;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    font-size:14px;
+    outline:none;
+    transition:0.2s;
+}
+
+input:focus{
+    border-color:#5b2cff;
+    box-shadow:0 0 0 2px rgba(91,44,255,0.15);
+}
+
+button{
+    width:100%;
+    margin-top:24px;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background: linear-gradient(135deg,#5b2cff,#7f5bff);
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    transform:translateY(-1px);
+    box-shadow:0 10px 25px rgba(91,44,255,0.4);
+}
+
+.footer{
+    text-align:center;
+    margin-top:16px;
+    font-size:12px;
+    color:#777;
+}
+</style>
 </head>
+
 <body>
-<div class="box">
-<h2>TOPSIS Calculator</h2>
-<form action="/api/topsis" method="post" enctype="multipart/form-data">
-<label>CSV File</label>
-<input type="file" name="file" required>
-<label>Weights</label>
-<input type="text" name="weights" placeholder="1,1,1,1" required>
-<label>Impacts</label>
-<input type="text" name="impacts" placeholder="+,+,-,+" required>
-<label>Email</label>
-<input type="email" name="email" required>
-<button type="submit">Submit</button>
-</form>
-<p><b>Result will be downloaded automatically</b></p>
+
+<div class="container">
+    <h2>TOPSIS Web Service</h2>
+    <div class="subtitle">Decision Making Using TOPSIS</div>
+
+    <label>Upload CSV File</label>
+    <input type="file" id="file">
+
+    <label>Weights (comma separated)</label>
+    <input id="weights" value="1,1,1,1">
+
+    <label>Impacts (+ or -)</label>
+    <input id="impacts" value="+,+,-,+">
+
+    <button onclick="run()">Generate Result</button>
+
+    <div class="footer">
+        Result will be downloaded as CSV
+    </div>
 </div>
+
+<script>
+function run(){
+    const file = document.getElementById("file").files[0];
+    if(!file){
+        alert("Please upload a CSV file");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e){
+        const rows = e.target.result.trim().split("\n").map(r=>r.split(","));
+        const header = rows[0];
+        const data = rows.slice(1);
+
+        const w = document.getElementById("weights").value.split(",").map(Number);
+        const imp = document.getElementById("impacts").value.split(",");
+
+        let m = data.map(r=>r.slice(1).map(Number));
+
+        let norm=[];
+        for(let j=0;j<m[0].length;j++){
+            let s=0;
+            for(let i=0;i<m.length;i++) s+=m[i][j]*m[i][j];
+            norm.push(Math.sqrt(s));
+        }
+
+        let weighted = m.map(r=>r.map((v,j)=>v/norm[j]*w[j]));
+
+        let best=[], worst=[];
+        for(let j=0;j<imp.length;j++){
+            let col = weighted.map(r=>r[j]);
+            if(imp[j]==="+"){
+                best.push(Math.max(...col));
+                worst.push(Math.min(...col));
+            }else{
+                best.push(Math.min(...col));
+                worst.push(Math.max(...col));
+            }
+        }
+
+        let score = weighted.map(r=>{
+            let d1=0,d2=0;
+            for(let j=0;j<r.length;j++){
+                d1+=(r[j]-best[j])**2;
+                d2+=(r[j]-worst[j])**2;
+            }
+            return Math.sqrt(d2)/(Math.sqrt(d1)+Math.sqrt(d2));
+        });
+
+        let rank=[...score]
+            .map((v,i)=>[v,i])
+            .sort((a,b)=>b[0]-a[0])
+            .map((x,i)=>[x[1],i+1]);
+
+        let out = header.join(",")+",Topsis Score,Rank\n";
+        data.forEach((r,i)=>{
+            out+=r.join(",")+","+score[i].toFixed(4)+","+rank.find(x=>x[0]==i)[1]+"\n";
+        });
+
+        const blob = new Blob([out],{type:"text/csv"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "result.csv";
+        a.click();
+    };
+    reader.readAsText(file);
+}
+</script>
+
 </body>
 </html>
